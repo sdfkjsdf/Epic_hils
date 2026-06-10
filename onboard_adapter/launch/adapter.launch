@@ -1,0 +1,16 @@
+<launch>
+  <!-- Onboard adapter: EPIC /position_cmd -> PX4 /mavros/setpoint_raw/local -->
+  <arg name="input_topic"   default="/position_cmd"/>
+  <arg name="rate"          default="50.0"/>
+  <arg name="auto_offboard" default="true"/>
+  <arg name="auto_arm"      default="false"/>   <!-- SAFETY: arm manually first -->
+  <arg name="use_accel"     default="true"/>
+
+  <node pkg="onboard_adapter" type="px4_setpoint_adapter.py" name="px4_setpoint_adapter" output="screen">
+    <param name="input_topic"   value="$(arg input_topic)"/>
+    <param name="rate"          value="$(arg rate)"/>
+    <param name="auto_offboard" value="$(arg auto_offboard)"/>
+    <param name="auto_arm"      value="$(arg auto_arm)"/>
+    <param name="use_accel"     value="$(arg use_accel)"/>
+  </node>
+</launch>

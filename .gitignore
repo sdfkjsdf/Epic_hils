@@ -1,0 +1,29 @@
+# --- Huge vendored / build artifacts (do NOT commit) ---
+PX4-Autopilot/
+catkin_ws/build/
+catkin_ws/devel/
+catkin_ws/install/
+catkin_ws/logs/
+build/
+devel/
+install/
+
+# --- Runtime logs (regenerated each run) ---
+*.log
+.A_*
+.gz_hitl.log
+.epic_garage.log
+.hils_epic.log
+.build_micoair.log
+.dev_history
+
+# --- Python cache ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- Editor / OS ---
+.vscode/
+.idea/
+*.swp
+.DS_Store

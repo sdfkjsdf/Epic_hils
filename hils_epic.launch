@@ -1,0 +1,105 @@
+<launch>
+  <!-- ===================================================================== -->
+  <!-- HILS live closed-loop: EPIC brain + perception ONLY.                  -->
+  <!-- Drops MARSIM's drone dynamics (quadrotor_dynamics) and controller     -->
+  <!-- (cascadePID) - those are replaced by our HITL Gazebo + PX4. Keeps the -->
+  <!-- planner, the static map (map_pub) and the LiDAR sensing (pcl_render).  -->
+  <!--                                                                        -->
+  <!-- odom is provided EXTERNALLY on /quad_0/lidar_slam/odom (by the Gazebo  -->
+  <!-- ground-truth bridge = FAST-LIO stand-in). That single odom feeds the   -->
+  <!-- planner, pcl_render and (outside this file) the FC EKF vision.         -->
+  <!--   planner odom  : /quad_0/lidar_slam/odom_throttled (throttle below)   -->
+  <!--   planner cloud : /quad0_pcl_render_node/cloud (pcl_render output)      -->
+  <!--   EPIC cmd out  : /planning/pos_cmd  -> our adapter -> PX4             -->
+  <!-- Trigger exploration with: rostopic pub /move_base_simple/goal ...      -->
+  <!-- ===================================================================== -->
+
+  <arg name="odom_topic" default="/quad_0/lidar_slam/odom" />
+  <arg name="map_name"   default="$(find map_generator)/resource/garage.pcd" />
+  <arg name="config_file" default="garage.yaml" />
+  <arg name="rviz" default="false" />
+
+  <!-- frame compatibility (same as garage.launch) -->
+  <node pkg="tf" type="static_transform_publisher" name="odom_to_world"
+        args="0 0 0 0 0 0 odom world 100" />
+  <node pkg="tf" type="static_transform_publisher" name="odom_to_map"
+        args="0 0 0 0 0 0 odom map 100" />
+
+  <!-- planner needs a throttled odom (/quad_0/lidar_slam/odom_throttled) -->
+  <node pkg="topic_tools" type="throttle" name="odom_throttle"
+        args="messages $(arg odom_topic) 50.0 $(arg odom_topic)_throttled" />
+
+  <!-- ===== KEEP: static map (garage.pcd) ===== -->
+  <node pkg="map_generator" name="map_pub" type="map_pub" output="screen"
+        args="$(arg map_name)">
+    <param name="add_boundary" value="0" />
+    <param name="is_bridge" value="0" />
+    <param name="downsample_res" value="0.01" />
+    <param name="map_offset_x" value="0.0" />
+    <param name="map_offset_y" value="0.0" />
+    <param name="map_offset_z" value="0.0" />
+  </node>
+
+  <!-- ===== KEEP: LiDAR sensing (renders garage.pcd at the odom pose) ===== -->
+  <!-- ~odometry <- external Gazebo-driven odom ; output -> /quad0_pcl_render_node/cloud -->
+  <node pkg="local_sensing_node" type="opengl_render_node"
+        name="quad0_pcl_render_node" output="screen" args="$(arg map_name)">
+    <remap from="~global_map" to="/map_generator/global_cloud" />
+    <remap from="~odometry"   to="$(arg odom_topic)" />
+    <param name="drone_id" value="0" />
+    <param name="lidar_pitch" value="40.0" />
+    <param name="quadrotor_name" value="quad_0" />
+    <param name="uav_num" value="1" />
+    <!-- match the institution's MID360 config (host_pc_simulation.launch effective values):
+         is_360lidar=0 + minicf pattern + sensing 18 + vfov 59. Our old 1/60/90 made a
+         different (uniform 360, 60m) cloud -> wrong sensed map -> odom-node connect failed. -->
+    <param name="is_360lidar" value="0" />
+    <param name="sensing_horizon" value="18.0" />
+    <param name="sensing_rate" value="10.0" />
+    <param name="estimation_rate" value="10.0" />
+    <param name="polar_resolution" value="0.2" />
+    <param name="yaw_fov" value="360.0" />
+    <param name="vertical_fov" value="59.0" />
+    <param name="min_raylength" value="1.0" />
+    <param name="livox_linestep" value="1.4" />
+    <param name="curvature_limit" value="100.0" />
+    <param name="hash_cubesize" value="5.0" />
+    <param name="use_avia_pattern" value="0" />
+    <param name="use_vlp32_pattern" value="0" />
+    <param name="use_minicf_pattern" value="1" />
+    <param name="use_os128_pattern" value="0" />
+    <param name="downsample_res" value="0.1" />
+    <param name="dynobj_enable" value="0" />
+    <param name="use_uav_extra_model" value="0" />
+    <param name="collisioncheck_enable" value="0" />
+    <param name="output_pcd" value="0" />
+  </node>
+
+  <!-- ===== KEEP: trigger + EPIC planner + traj server ===== -->
+  <node pkg="waypoint_generator" name="waypoint_generator" type="waypoint_generator" output="screen">
+    <remap from="~odom" to="$(arg odom_topic)" />
+    <remap from="~goal" to="/move_base_simple/goal" />
+    <remap from="~traj_start_trigger" to="/traj_start_trigger" />
+    <param name="waypoint_type" value="point" />
+  </node>
+
+  <include file="$(find epic_planner)/launch/algorithm.xml">
+    <arg name="config_file" value="$(arg config_file)" />
+  </include>
+
+  <!-- NOTE: tried overriding parallel_astar/update_connection_timeout (2ms->100ms) but
+       it was NOT the cause (the institution's host_pc_garage.yaml also uses 0.002).
+       Reverted; the real fix was the pcl_render MID360 config above. -->
+
+  <!-- traj_server: publishes /planning/pos_cmd (EPIC's position command) -->
+  <node pkg="plan_manage" name="traj_server" type="traj_server" output="screen">
+    <remap from="/position_cmd" to="/planning/pos_cmd" />
+  </node>
+
+  <!-- optional viz -->
+  <include if="$(arg rviz)" file="$(find epic_planner)/launch/rviz.launch" />
+
+  <!-- DROPPED on purpose (replaced by HITL Gazebo + PX4):
+       - mars_drone_sim quadrotor_dynamics_node   (drone dynamics  -> Gazebo)
+       - cascadepid_node                          (controller      -> PX4)   -->
+</launch>

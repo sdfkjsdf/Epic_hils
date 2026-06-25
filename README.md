@@ -6,7 +6,7 @@
 
 
 # 블록다이어그램
-<img width="3503" height="2020" alt="Image" src="https://github.com/user-attachments/assets/9826dae3-7d05-476c-b6c3-76bdad266841" />
+<img width="300" height="35" alt="Image" src="https://github.com/user-attachments/assets/2544151b-09ee-4044-911c-fb5cb408611c" />
 
 
 

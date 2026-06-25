@@ -6,7 +6,7 @@
 
 
 # 블록다이어그램
-<img width="300" height="35" alt="Image" src="https://github.com/user-attachments/assets/2544151b-09ee-4044-911c-fb5cb408611c" />
+[HITL Integration Ecosystem-2026-06-25-013213.pdf](https://github.com/user-attachments/files/29316992/HITL.Integration.Ecosystem-2026-06-25-013213.pdf)
 
 
 

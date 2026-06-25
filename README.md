@@ -4,7 +4,7 @@
 
 
 
-
+# 2026년 6월 25일 기준 블록 다이어그램
 [HITL Integration Ecosystem-2026-06-25-013213.pdf](https://github.com/user-attachments/files/29316992/HITL.Integration.Ecosystem-2026-06-25-013213.pdf)
 
 
